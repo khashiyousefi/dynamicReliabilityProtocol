@@ -4,39 +4,42 @@ def enum(**enums):
     return type('Enum', (), enums)
 
 PacketType = enum(CONNECTION=1, DATA=2, ACK=3)
+ReliabilityType = enum(RETRANSMISSION=1, PEC=2, FEC=3)
 
 # Create Connection Packet
-# Creates a DRP packet for initializing connection
-# retransmit 	: whether the server must retransmit on timeouts and the client sends ACKs
+# Creates a DRP packet for initializing connection from the receiver
 # bufferSize 	: how many packets the client can hold for ordering
 # data 			: the chunk being sent over UDP
-def createConnectionPacket(retransmit, bufferSize, data):
-	packet = DrpPacket(PacketType.CONNECTION, data)
-	packet.addHeaderInformation("retransmit", retransmit)
+def createConnectionPacket(bufferSize):
+	packet = DrpPacket(PacketType.CONNECTION, {})
 	packet.addHeaderInformation("bufferSize", bufferSize)
 	return packet
 
 # Create Data Packet
 # Creates a DRP packet for sending a chunk of data
+# reliability 	 : type of reliability 
 # sequenceNumber : the sequence number of this specific packet
-def createDataPacket(sequenceNumber, data):
+def createDataPacket(reliability, sequenceNumber, data):
 	packet = DrpPacket(PacketType.DATA, data)
+	packet.addHeaderInformation("reliability", reliability)
 	packet.addHeaderInformation("sequenceNumber", sequenceNumber)
 	return packet
 
 def createAckPacket(sequenceNumber):
 	packet = DrpPacket(PacketType.ACK, {})
-	packet.addHeaderInformation("")
+	packet.addHeaderInformation("sequenceNumber", sequenceNumber)
+	return packet
 
-# Load DRP 
+# Parse DRP 
 # Parses a json string into a DRP packet object
 # string : the json string recieved by the client or server
-def loadDrpPacket(string):
+def parseDrpPacket(string):
 	packetObject = json.loads(string)
-	packet = DrpPacket(packetObject["body"])
+	packet = DrpPacket(packetObject["header"]["type"], packetObject["body"])
 
 	for key in packetObject["header"]:
-		packet.addHeaderInformation(key, packetObject["header"][key])
+		if key != "type":
+			packet.addHeaderInformation(key, packetObject["header"][key])
 
 	return packet
 
@@ -54,3 +57,12 @@ class DrpPacket:
 
 	def toString(self):
 		return json.dumps(self.packet)
+
+	def encode(self):
+		return self.toString().encode()
+
+	def getHeaderValue(self, key):
+		return self.packet["header"][key]
+
+	def getData(self):
+		return self.packet["body"]
