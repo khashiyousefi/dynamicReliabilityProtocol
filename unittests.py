@@ -15,6 +15,7 @@ class TestDrpPacket(unittest.TestCase):
 		packet = createDataPacket(ReliabilityType.PEC, self.TEST_SEQUENCE_NUMBER, self.TEST_DATA)
 		self.assertEqual(packet.getHeaderValue("type"), PacketType.DATA)
 		self.assertEqual(packet.getHeaderValue("sequenceNumber"), self.TEST_SEQUENCE_NUMBER)
+		self.assertFalse(packet.getHeaderValue("last"))
 		self.assertEqual(packet.getData(), self.TEST_DATA)
 
 	def test_createAckPacket(self):

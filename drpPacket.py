@@ -9,7 +9,6 @@ ReliabilityType = enum(RETRANSMISSION=1, PEC=2, FEC=3)
 # Create Connection Packet
 # Creates a DRP packet for initializing connection from the receiver
 # bufferSize 	: how many packets the client can hold for ordering
-# data 			: the chunk being sent over UDP
 def createConnectionPacket(bufferSize):
 	packet = DrpPacket(PacketType.CONNECTION, {})
 	packet.addHeaderInformation("bufferSize", bufferSize)
@@ -19,12 +18,18 @@ def createConnectionPacket(bufferSize):
 # Creates a DRP packet for sending a chunk of data
 # reliability 	 : type of reliability 
 # sequenceNumber : the sequence number of this specific packet
-def createDataPacket(reliability, sequenceNumber, data):
+# data 			 : the chunk being sent over UDP
+# last			 : whether this is the last data packet or not
+def createDataPacket(reliability, sequenceNumber, data, last=False):
 	packet = DrpPacket(PacketType.DATA, data)
 	packet.addHeaderInformation("reliability", reliability)
 	packet.addHeaderInformation("sequenceNumber", sequenceNumber)
+	packet.addHeaderInformation("last", last)
 	return packet
 
+# Create Ack Packet
+# Creates a DRP packet for acknowledging that a data packet was received
+# sequenceNumber : the sequence number of the packet received 
 def createAckPacket(sequenceNumber):
 	packet = DrpPacket(PacketType.ACK, {})
 	packet.addHeaderInformation("sequenceNumber", sequenceNumber)
