@@ -54,7 +54,7 @@ class DrpPacket:
 			"header": {
 				"type": packetType
 			},
-			"body": data
+			"body": str(data)
 		}
 
 	def addHeaderInformation(self, key, value):

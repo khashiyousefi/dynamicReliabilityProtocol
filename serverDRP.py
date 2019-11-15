@@ -14,26 +14,21 @@ def main():
 
 	serverSocket = setupServer(port)
 	sequenceNumber = 1
+	bytesPerPacket = 3
 
 	message, clientAddress = serverSocket.recvfrom(2048)
 	packet = parseDrpPacket(message.decode())
 	clientBufferSize = packet.getHeaderValue("bufferSize")
+	groupedData = groupPacketData(data, bytesPerPacket)
+	length = len(groupedData)
 
-	packetToSend = createDataPacket(ReliabilityType.PEC, sequenceNumber, data)
-	serverSocket.sendto(packetToSend.encode(), clientAddress)
+	for packetBytes in groupedData:
+		last = length == sequenceNumber
+		packetToSend = createDataPacket(ReliabilityType.PEC, sequenceNumber, packetBytes, last)
+		serverSocket.sendto(packetToSend.encode(), clientAddress)
+		sequenceNumber += 1
 
 	serverSocket.close()
-
-	"""
-	while True:
-		message, clientAddress = serverSocket.recvfrom(2048)
-		modifiedMessage = message.decode().upper()
-		serverSocket.sendto(modifiedMessage.encode(), clientAddress)
-	"""
-
-	# packet = createDataPacket(0, "chunk")
-	# packet = loadRdpPacket('{"header":{"retransmission":true},"body":"DATA TO SEND"}');
-	# print(packet.toString())
 
 def setupServer(port):
 	serverSocket = socket(AF_INET, SOCK_DGRAM)
@@ -48,12 +43,23 @@ def getSendingData(filePath):
 	if filePath != None:
 		try:
 			file = open(filePath, "r")
-			return file.read()
+			return bytearray(file.read())
 		except IOError:
 			print "Error: could not open file " + filePath
 			sys.exit()
 
-	return "Data to send"
+	return bytearray("Data to send")
+
+def groupPacketData(data, bytesPerPacket):
+	groups = []
+
+	while len(data) > bytesPerPacket:
+		group = data[:bytesPerPacket]
+		groups.append(group)
+		data = data[bytesPerPacket:]
+
+	groups.append(data)
+	return groups
 
 if __name__ == "__main__":
 	main()

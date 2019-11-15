@@ -14,11 +14,17 @@ def main():
 	recievedBuffer = []
 	clientSocket = setupConnection(ip, port, bufferSize)
 
-	# while True:
-	message, clientAddress = clientSocket.recvfrom(2048)
-	packet = parseDrpPacket(message.decode())
-	data = packet.getData()
-	print data
+	while True:
+		message, clientAddress = clientSocket.recvfrom(2048)
+		packet = parseDrpPacket(message.decode())
+		data = packet.getData()
+		recievedBuffer.append(data)
+
+		if packet.getHeaderValue("last") == True:
+			break;
+
+	print(str(recievedBuffer))
+
 	clientSocket.close()
 
 def readCommandArguments():
