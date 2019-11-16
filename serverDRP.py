@@ -6,10 +6,11 @@ import sys
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--port', type=int, metavar='', help='server port number')
 parser.add_argument('-f', '--file', type=str, metavar='', help='file to send')
+parser.add_argument('-r', '--reliability', type=int, metavar='', help='reliability type <CONNECTION=1, DATA=2, ACK=3>')
 args = parser.parse_args()
 
 def main():
-	port, filePath = readCommandArguments()
+	port, filePath, reliability = readCommandArguments()
 	data = getSendingData(filePath)
 
 	serverSocket = setupServer(port)
@@ -24,9 +25,27 @@ def main():
 
 	for packetBytes in groupedData:
 		last = length == sequenceNumber
-		packetToSend = createDataPacket(ReliabilityType.PEC, sequenceNumber, packetBytes, last)
+		packetToSend = createDataPacket(reliability, sequenceNumber, packetBytes, last)
+
 		serverSocket.sendto(packetToSend.encode(), clientAddress)
 		sequenceNumber += 1
+
+	if reliability == ReliabilityType.PEC:
+		message, clientAddress = serverSocket.recvfrom(2048)
+		packet = parseDrpPacket(message.decode())
+		data = packet.getData()
+		bitMap = json.loads(data)
+		sentBitMapResponse = False
+		
+		for index in range(0, length):
+			if bitMap[index] == 0:
+				packetToSend = createDataPacket(reliability, index - 1, groupedData[index], False)
+				serverSocket.sendto(packetToSend.encode(), clientAddress)
+				sentBitMapResponse = True
+
+		if sentBitMapResponse == True:
+			packetToSend = createFinPacket()
+			serverSocket.sendto(packetToSend.encode(), clientAddress)
 
 	serverSocket.close()
 
@@ -37,7 +56,13 @@ def setupServer(port):
 
 def readCommandArguments():
 	port = args.port if args.port != None else 12000
-	return port, args.file
+
+	if args.reliability != None and (args.reliability < 1 or args.reliability > 2):
+		print "Error: reliability must be: <CONNECTION=1, DATA=2, ACK=3>"
+		sys.exit()
+
+	reliability = args.reliability if args.reliability != None else 1
+	return port, args.file, reliability
 
 def getSendingData(filePath):
 	if filePath != None:

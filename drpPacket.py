@@ -35,6 +35,20 @@ def createAckPacket(sequenceNumber):
 	packet.addHeaderInformation("sequenceNumber", sequenceNumber)
 	return packet
 
+# Create BitMap Packet
+# Creates a DRP packet for responding with a bitmap of missing packets
+# bitMap : the bitmap of missing packets
+def createBitMapPacket(bitMap):
+	packet = DrpPacket(PacketType.ACK, bitMap)
+	return packet
+
+# Create Fin Packet
+# Creates a DRP packet for notifying the connection will be closed
+def createFinPacket():
+	packet = DrpPacket(PacketType.ACK, {})
+	packet.addHeaderInformation("last", True)
+	return packet
+
 # Parse DRP 
 # Parses a json string into a DRP packet object
 # string : the json string recieved by the client or server
