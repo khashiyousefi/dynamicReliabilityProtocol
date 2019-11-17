@@ -3,6 +3,7 @@ from libraries.drpPacket import *
 import argparse
 import sys
 import binascii
+import mimetypes
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--port', type=int, metavar='', help='server port number')
@@ -15,6 +16,8 @@ def main():
 	# Initialize the Server
 	port, filePath, reliability, bytesPerPacket = readCommandArguments()
 	data = getSendingData(filePath)
+	filePathTokens = filePath.split('.')
+	fileExtension = filePathTokens[len(filePathTokens) - 1]
 	serverSocket = setupServer(port)
 	sequenceNumber = 1
 	groupedData = groupPacketData(data, bytesPerPacket)
@@ -27,7 +30,7 @@ def main():
 
 	for packetBytes in groupedData:
 		last = length == sequenceNumber
-		packetToSend = createDataPacket(reliability, sequenceNumber, packetBytes, last)
+		packetToSend = createDataPacket(reliability, sequenceNumber, packetBytes, fileExtension, last)
 		serverSocket.sendto(packetToSend.encode(), clientAddress)
 		sequenceNumber += 1
 
@@ -40,7 +43,7 @@ def main():
 		
 		for index in range(0, length):
 			if bitMap[index] == 0:
-				packetToSend = createDataPacket(reliability, index - 1, groupedData[index], False)
+				packetToSend = createDataPacket(reliability, index - 1, groupedData[index], fileExtension, False)
 				serverSocket.sendto(packetToSend.encode(), clientAddress)
 				sentBitMapResponse = True
 
@@ -70,7 +73,12 @@ def getSendingData(filePath):
 	if filePath != None:
 		try:
 			file = open(filePath, "r")
-			return binascii.hexlify(file.read())
+			(fileType, encoding) = mimetypes.guess_type(filePath)
+
+			if fileType == 'text/plain':
+				return file.read()
+			else:
+				return binascii.hexlify(file.read())
 		except IOError:
 			print "Error: could not open file " + filePath
 			sys.exit()

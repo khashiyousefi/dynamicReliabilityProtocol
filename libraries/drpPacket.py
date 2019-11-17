@@ -18,12 +18,14 @@ def createConnectionPacket(bufferSize):
 # Creates a DRP packet for sending a chunk of data
 # reliability 	 : type of reliability 
 # sequenceNumber : the sequence number of this specific packet
+# fileExtension  : the extension of the file
 # data 			 : the chunk being sent over UDP
 # last			 : whether this is the last data packet or not
-def createDataPacket(reliability, sequenceNumber, data, last=False):
+def createDataPacket(reliability, sequenceNumber, data, fileExtension, last=False):
 	packet = DrpPacket(PacketType.DATA, data)
 	packet.addHeaderInformation("reliability", reliability)
 	packet.addHeaderInformation("sequenceNumber", sequenceNumber)
+	packet.addHeaderInformation("fileExtension", fileExtension)
 	packet.addHeaderInformation("last", last)
 	return packet
 
