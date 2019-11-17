@@ -1,5 +1,5 @@
 from socket import *
-from drpPacket import *
+from libraries.drpPacket import *
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -46,9 +46,24 @@ def main():
 			else:
 				break;
 
-	print(str(recievedBuffer))
+	#print(str(recievedBuffer))
 
 	clientSocket.close()
+
+	file = open('test_transfered.wav', 'w')
+	counter = 0
+
+	for data in recievedBuffer:
+		file.write(data)
+
+		if counter >= 7:
+			counter = 0
+			file.write('\n')
+		else:
+			file.write(' ')
+			counter += 1
+	
+	file.close()
 
 def readCommandArguments():
 	ip = args.ip if args.ip != None else '127.0.0.1'

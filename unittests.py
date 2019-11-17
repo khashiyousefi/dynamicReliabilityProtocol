@@ -1,5 +1,5 @@
 import unittest
-from drpPacket import *
+from libraries.drpPacket import *
 
 class TestDrpPacket(unittest.TestCase):
 	TEST_BUFFER_SIZE = 10

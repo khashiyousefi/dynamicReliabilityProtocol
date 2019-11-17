@@ -78,7 +78,8 @@ class DrpPacket:
 		return json.dumps(self.packet)
 
 	def encode(self):
-		return self.toString().encode()
+		packetString = self.toString()
+		return packetString.encode()
 
 	def getHeaderValue(self, key):
 		return self.packet["header"][key]
