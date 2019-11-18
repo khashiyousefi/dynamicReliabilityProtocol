@@ -4,6 +4,7 @@ import argparse
 import sys
 import binascii
 import mimetypes
+import random
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-p', '--port', type=int, metavar='', help='server port number')
@@ -13,17 +14,14 @@ parser.add_argument('-b', '--bytes', type=int, metavar='', help='bytes per DRP p
 args = parser.parse_args()
 
 def main():
+	# Variables
+	sequenceNumber = 1
+
 	# Initialize the Server
 	port, filePath, reliability, bytesPerPacket = readCommandArguments()
 	data = getSendingData(filePath)
-	fileExtension = 'txt'
-
-	if filePath != None:
-		filePathTokens = filePath.split('.')
-		fileExtension = filePathTokens[len(filePathTokens) - 1]
-
+	fileExtension = getFileExtension(filePath)	
 	serverSocket = setupServer(port)
-	sequenceNumber = 1
 	groupedData = groupPacketData(data, bytesPerPacket)
 	length = len(groupedData)
 
@@ -32,28 +30,43 @@ def main():
 	packet = parseDrpPacket(message.decode())
 	clientBufferSize = packet.getHeaderValue("bufferSize")
 
+	# Send data packets
 	for packetBytes in groupedData:
 		last = length == sequenceNumber
 		packetToSend = createDataPacket(reliability, sequenceNumber, packetBytes, fileExtension, last)
-		serverSocket.sendto(packetToSend.encode(), clientAddress)
+
+		if sequenceNumber == 3:
+			serverSocket.sendto(packetToSend.encode(), clientAddress)
 		sequenceNumber += 1
 
 	if reliability == ReliabilityType.PEC:
-		message, clientAddress = serverSocket.recvfrom(2048)
-		packet = parseDrpPacket(message.decode())
-		data = packet.getData()
-		bitMap = json.loads(data)
-		sentBitMapResponse = False
-		
-		for index in range(0, length):
-			if bitMap[index] == 0:
-				packetToSend = createDataPacket(reliability, index - 1, groupedData[index], fileExtension, False)
-				serverSocket.sendto(packetToSend.encode(), clientAddress)
-				sentBitMapResponse = True
+		attempts = 3
 
-		if sentBitMapResponse == True:
-			packetToSend = createFinPacket()
-			serverSocket.sendto(packetToSend.encode(), clientAddress)
+		while True:
+			message, clientAddress = serverSocket.recvfrom(2048)
+			packet = parseDrpPacket(message.decode())
+			data = packet.getData()
+			bitMap = json.loads(data)
+			sentBitMapResponse = False
+			print bitMap
+			
+			for index in range(0, length):
+				if bitMap[index] == 0:
+					packetToSend = createDataPacket(reliability, index + 1, groupedData[index], fileExtension, False)
+					serverSocket.sendto(packetToSend.encode(), clientAddress)
+					sentBitMapResponse = True
+
+			if sentBitMapResponse == True:
+				packetToSend = createFinPacket()
+				serverSocket.sendto(packetToSend.encode(), clientAddress)
+				break
+			elif attempts <= 0:
+				print 'Error: too many attempts to retransmit missing packets'
+				packetToSend = createFinPacket()
+				serverSocket.sendto(packetToSend.encode(), clientAddress)
+				break
+			else:
+				attempts -= 1
 
 	serverSocket.close()
 
@@ -99,6 +112,13 @@ def groupPacketData(data, bytesPerPacket):
 
 	groups.append(data)
 	return groups
+
+def getFileExtension(filePath):
+	if filePath != None:
+		filePathTokens = filePath.split('.')
+		return filePathTokens[len(filePathTokens) - 1]
+
+	return 'txt'
 
 if __name__ == "__main__":
 	main()

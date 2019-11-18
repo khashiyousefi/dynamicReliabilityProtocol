@@ -24,6 +24,7 @@ def main():
 		message, clientAddress = clientSocket.recvfrom(2048)
 		packet = parseDrpPacket(message.decode())
 
+		# Received a fin packet - told to close connection
 		if packet.getHeaderValue('type') == PacketType.ACK and packet.getHeaderValue('last') == True:
 			break;
 
@@ -35,11 +36,15 @@ def main():
 		if not missingPackets and receivedNumber - lastReceived > 1:
 			missingPackets = True
 
-		recievedBuffer, bitMap = storePacketData(recievedBuffer, data, bitMap, lastReceived, receivedNumber)
+		if bitMapSent == True:
+			recievedBuffer, bitMap = updatePacketData(recievedBuffer, data, bitMap, receivedNumber)
+		else:
+			recievedBuffer, bitMap = storePacketData(recievedBuffer, data, bitMap, lastReceived, receivedNumber)
+
 		lastReceived = receivedNumber
 
-		if packet.getHeaderValue("last") == True:
-			if reliability == ReliabilityType.PEC and bitMapSent == False:
+		if packet.getHeaderValue('last') == True:
+			if reliability == ReliabilityType.PEC:
 				sendBitMap(clientSocket, ip, port, bitMap)
 				bitMapSent = True
 				lastReceived = 0
@@ -95,12 +100,14 @@ def storePacketData(recievedBuffer, data, bitMap, lastReceived, receivedNumber):
 		recievedBuffer.append(None)
 		lastReceived = lastReceived + 1
 
-	if receivedNumber - lastReceived < 1:
-		bitMap[receivedNumber - 1] = 1
-		recievedBuffer[receivedNumber - 1] = data
-	else:
-		recievedBuffer.append(data)
-		bitMap.append(1)
+	recievedBuffer.append(data)
+	bitMap.append(1)
+
+	return recievedBuffer, bitMap
+
+def updatePacketData(recievedBuffer, data, bitMap, receivedNumber):
+	bitMap[receivedNumber - 1] = 1
+	recievedBuffer[receivedNumber - 1] = data
 
 	return recievedBuffer, bitMap
 
