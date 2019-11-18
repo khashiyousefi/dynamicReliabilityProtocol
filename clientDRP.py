@@ -68,6 +68,8 @@ def main():
 				counter += 1
 	
 		file.close()
+	else:
+		print recievedBuffer
 
 def readCommandArguments():
 	ip = args.ip if args.ip != None else '127.0.0.1'

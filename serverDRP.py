@@ -16,8 +16,12 @@ def main():
 	# Initialize the Server
 	port, filePath, reliability, bytesPerPacket = readCommandArguments()
 	data = getSendingData(filePath)
-	filePathTokens = filePath.split('.')
-	fileExtension = filePathTokens[len(filePathTokens) - 1]
+	fileExtension = 'txt'
+
+	if filePath != None:
+		filePathTokens = filePath.split('.')
+		fileExtension = filePathTokens[len(filePathTokens) - 1]
+
 	serverSocket = setupServer(port)
 	sequenceNumber = 1
 	groupedData = groupPacketData(data, bytesPerPacket)
