@@ -35,8 +35,7 @@ def main():
 		last = length == sequenceNumber
 		packetToSend = createDataPacket(reliability, sequenceNumber, packetBytes, fileExtension, last)
 
-		if sequenceNumber == 3:
-			serverSocket.sendto(packetToSend.encode(), clientAddress)
+		serverSocket.sendto(packetToSend.encode(), clientAddress)
 		sequenceNumber += 1
 
 	if reliability == ReliabilityType.PEC:
@@ -48,7 +47,6 @@ def main():
 			data = packet.getData()
 			bitMap = json.loads(data)
 			sentBitMapResponse = False
-			print bitMap
 			
 			for index in range(0, length):
 				if bitMap[index] == 0:
@@ -56,7 +54,7 @@ def main():
 					serverSocket.sendto(packetToSend.encode(), clientAddress)
 					sentBitMapResponse = True
 
-			if sentBitMapResponse == True:
+			if sentBitMapResponse == False:
 				packetToSend = createFinPacket()
 				serverSocket.sendto(packetToSend.encode(), clientAddress)
 				break
