@@ -1,4 +1,5 @@
 import json
+import binascii
 
 def enum(**enums):
     return type('Enum', (), enums)
@@ -66,6 +67,9 @@ def parseDrpPacket(string):
 
 class DrpPacket:
 	def __init__(self, packetType, data):
+		if type(data) == str:
+			data = binascii.hexlify(data)
+
 		self.packet = {
 			"header": {
 				"type": packetType

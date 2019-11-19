@@ -21,7 +21,7 @@ def main():
 	fileExtension = 'txt'
 
 	while True:
-		message, clientAddress = clientSocket.recvfrom(2048)
+		message, clientAddress = clientSocket.recvfrom(64000)
 		packet = parseDrpPacket(message.decode())
 
 		# Received a fin packet - told to close connection
@@ -96,12 +96,12 @@ def sendBitMap(socket, serverName, serverPort, bitMap):
 
 def storePacketData(recievedBuffer, data, bitMap, lastReceived, receivedNumber):
 	while receivedNumber - lastReceived > 1:
-		bitMap.append(0)
+		bitMap.append(False)
 		recievedBuffer.append(None)
 		lastReceived = lastReceived + 1
 
 	recievedBuffer.append(data)
-	bitMap.append(1)
+	bitMap.append(True)
 
 	return recievedBuffer, bitMap
 

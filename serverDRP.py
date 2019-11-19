@@ -26,7 +26,7 @@ def main():
 	length = len(groupedData)
 
 	# Wait for Client to connect
-	message, clientAddress = serverSocket.recvfrom(2048)
+	message, clientAddress = serverSocket.recvfrom(64000)
 	packet = parseDrpPacket(message.decode())
 	clientBufferSize = packet.getHeaderValue("bufferSize")
 
@@ -42,14 +42,14 @@ def main():
 		attempts = 3
 
 		while True:
-			message, clientAddress = serverSocket.recvfrom(2048)
+			message, clientAddress = serverSocket.recvfrom(64000)
 			packet = parseDrpPacket(message.decode())
 			data = packet.getData()
 			bitMap = json.loads(data)
 			sentBitMapResponse = False
 			
 			for index in range(0, length):
-				if bitMap[index] == 0:
+				if bitMap[index] == False:
 					packetToSend = createDataPacket(reliability, index + 1, groupedData[index], fileExtension, False)
 					serverSocket.sendto(packetToSend.encode(), clientAddress)
 					sentBitMapResponse = True
@@ -81,19 +81,20 @@ def readCommandArguments():
 		sys.exit()
 
 	reliability = args.reliability if args.reliability != None else 1
-	bytesPerPacket = args.bytes if args.bytes != None else 4
+	bytesPerPacket = args.bytes if args.bytes != None else 2
 	return port, args.file, reliability, bytesPerPacket
 
 def getSendingData(filePath):
 	if filePath != None:
 		try:
-			file = open(filePath, "r")
 			(fileType, encoding) = mimetypes.guess_type(filePath)
 
 			if fileType == 'text/plain':
+				file = open(filePath, 'r')
 				return file.read()
 			else:
-				return binascii.hexlify(file.read())
+				file = open(filePath, 'rb')
+				return file.read()
 		except IOError:
 			print "Error: could not open file " + filePath
 			sys.exit()
