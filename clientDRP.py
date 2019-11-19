@@ -1,6 +1,7 @@
 from socket import *
 from libraries.drpPacket import *
 import argparse
+import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--ip', type=str, metavar='', help='server IP address')
@@ -32,6 +33,7 @@ def main():
 		receivedNumber = packet.getHeaderValue('sequenceNumber')
 		fileExtension = packet.getHeaderValue('fileExtension')
 		data = packet.getData()
+		ldata = packet.getLData()
 
 		if not missingPackets and receivedNumber - lastReceived > 1:
 			missingPackets = True
@@ -39,7 +41,7 @@ def main():
 		if bitMapSent == True:
 			recievedBuffer, bitMap = updatePacketData(recievedBuffer, data, bitMap, receivedNumber)
 		else:
-			recievedBuffer, bitMap = storePacketData(recievedBuffer, data, bitMap, lastReceived, receivedNumber)
+			recievedBuffer, bitMap = storePacketData(reliability, recievedBuffer, data, ldata, bitMap, lastReceived, receivedNumber)
 
 		lastReceived = receivedNumber
 
@@ -97,11 +99,15 @@ def sendBitMap(socket, serverName, serverPort, bitMap):
 	message = packet.toString()
 	socket.sendto(message.encode(), (serverName, serverPort))
 
-def storePacketData(recievedBuffer, data, bitMap, lastReceived, receivedNumber):
+def storePacketData(reliability, recievedBuffer, data, ldata, bitMap, lastReceived, receivedNumber):
 	while receivedNumber - lastReceived > 1:
 		lastReceived = lastReceived + 1
 		bitMap.append(lastReceived)
-		recievedBuffer.append(None)		
+
+		if reliability == ReliabilityType.FEC:
+			recievedBuffer.append(ldata)
+		else:
+			recievedBuffer.append(None)	
 
 	recievedBuffer.append(data)
 	return recievedBuffer, bitMap

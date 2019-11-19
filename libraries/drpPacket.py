@@ -30,6 +30,22 @@ def createDataPacket(reliability, sequenceNumber, data, fileExtension, last=Fals
 	packet.addHeaderInformation("last", last)
 	return packet
 
+# Create FEC Data Packet
+# Creates an FEC packet for sending a chunk of data
+# reliability 	 : type of reliability 
+# sequenceNumber : the sequence number of this specific packet
+# fileExtension  : the extension of the file
+# data 			 : the chunk being sent over UDP
+# ldata			 : the lower quality chunk from the previous packet
+# last			 : whether this is the last data packet or not
+def createFecDataPacket(reliability, sequenceNumber, data, ldata, fileExtension, last=False):
+	packet = DrpPacket(PacketType.DATA, data, ldata)
+	packet.addHeaderInformation("reliability", reliability)
+	packet.addHeaderInformation("sequenceNumber", sequenceNumber)
+	packet.addHeaderInformation("fileExtension", fileExtension)
+	packet.addHeaderInformation("last", last)
+	return packet
+
 # Create Ack Packet
 # Creates a DRP packet for acknowledging that a data packet was received
 # sequenceNumber : the sequence number of the packet received 
@@ -57,7 +73,7 @@ def createFinPacket():
 # string : the json string recieved by the client or server
 def parseDrpPacket(string):
 	packetObject = json.loads(string)
-	packet = DrpPacket(packetObject["header"]["type"], packetObject["body"])
+	packet = DrpPacket(packetObject["header"]["type"], packetObject["body"], packetObject["lbody"])
 
 	for key in packetObject["header"]:
 		if key != "type":
@@ -66,15 +82,19 @@ def parseDrpPacket(string):
 	return packet
 
 class DrpPacket:
-	def __init__(self, packetType, data):
+	def __init__(self, packetType, data, ldata=''):
 		if type(data) == str:
 			data = binascii.hexlify(data)
+
+		if type(ldata) == str:
+			ldata = binascii.hexlify(ldata)
 
 		self.packet = {
 			"header": {
 				"type": packetType
 			},
-			"body": str(data)
+			"body": str(data),
+			"lbody": str(ldata)
 		}
 
 	def addHeaderInformation(self, key, value):
@@ -92,3 +112,6 @@ class DrpPacket:
 
 	def getData(self):
 		return self.packet["body"]
+
+	def getLData(self):
+		return self.packet["lbody"]
