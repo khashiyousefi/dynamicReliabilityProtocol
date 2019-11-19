@@ -62,7 +62,7 @@ def main():
 			file = open(outputPath, 'w')
 
 			for data in recievedBuffer:
-				file.write(data)
+				file.write(binascii.unhexlify(data))
 		else:
 			print 'binary write'
 			file = open(outputPath, 'wb')

@@ -7,6 +7,7 @@ import mimetypes
 import random
 
 parser = argparse.ArgumentParser()
+parser.add_argument('-i', '--ip', type=str, metavar='', help='server ip address')
 parser.add_argument('-p', '--port', type=int, metavar='', help='server port number')
 parser.add_argument('-f', '--file', type=str, metavar='', help='file to send')
 parser.add_argument('-r', '--reliability', type=int, metavar='', help='reliability type <CONNECTION=1, DATA=2, ACK=3>')
@@ -18,10 +19,10 @@ def main():
 	sequenceNumber = 1
 
 	# Initialize the Server
-	port, filePath, reliability, bytesPerPacket = readCommandArguments()
+	ip, port, filePath, reliability, bytesPerPacket = readCommandArguments()
 	data = getSendingData(filePath)
 	fileExtension = getFileExtension(filePath)	
-	serverSocket = setupServer(port)
+	serverSocket = setupServer(ip, port)
 	groupedData = groupPacketData(data, bytesPerPacket)
 	length = len(groupedData)
 
@@ -72,15 +73,17 @@ def main():
 				remainingAttempts -= 1
 				attempts += 1
 
-	print 'PEC: attempts: ' + str(attempts)
+		print 'PEC: attempts: ' + str(attempts)
+		
 	serverSocket.close()
 
-def setupServer(port):
+def setupServer(ip, port):
 	serverSocket = socket(AF_INET, SOCK_DGRAM)
-	serverSocket.bind(('', port))
+	serverSocket.bind((ip, port))
 	return serverSocket
 
 def readCommandArguments():
+	ip = args.ip if args.ip != None else ''
 	port = args.port if args.port != None else 12000
 
 	if args.reliability != None and (args.reliability < 1 or args.reliability > 2):
@@ -89,7 +92,7 @@ def readCommandArguments():
 
 	reliability = args.reliability if args.reliability != None else 1
 	bytesPerPacket = args.bytes if args.bytes != None else 2
-	return port, args.file, reliability, bytesPerPacket
+	return ip, port, args.file, reliability, bytesPerPacket
 
 def getSendingData(filePath):
 	if filePath != None:
