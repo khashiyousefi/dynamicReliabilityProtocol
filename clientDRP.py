@@ -21,7 +21,7 @@ def main():
 	fileExtension = 'txt'
 
 	while True:
-		message, clientAddress = clientSocket.recvfrom(64000)
+		message, clientAddress = clientSocket.recvfrom(2048)
 		packet = parseDrpPacket(message.decode())
 
 		# Received a fin packet - told to close connection
@@ -57,20 +57,23 @@ def main():
 	clientSocket.close()
 
 	if outputPath != None:
-		file = open(outputPath, 'w')
-		counter = 0
 
-		for data in recievedBuffer:
-			file.write(data)
+		if fileExtension == 'txt':
+			file = open(outputPath, 'w')
 
-			if fileExtension == 'txt':
-				continue
-			elif counter >= 7:
-				counter = 0
-				file.write('\n')
-			else:
-				file.write(' ')
-				counter += 1
+			for data in recievedBuffer:
+				file.write(data)
+		else:
+			print 'binary write'
+			file = open(outputPath, 'wb')
+			lastData = None
+			
+			for data in recievedBuffer:
+				if data == None:
+					data = lastData
+
+				file.write(binascii.unhexlify(data))
+				lastData = data
 	
 		file.close()
 	else:
@@ -96,17 +99,15 @@ def sendBitMap(socket, serverName, serverPort, bitMap):
 
 def storePacketData(recievedBuffer, data, bitMap, lastReceived, receivedNumber):
 	while receivedNumber - lastReceived > 1:
-		bitMap.append(False)
-		recievedBuffer.append(None)
 		lastReceived = lastReceived + 1
+		bitMap.append(lastReceived)
+		recievedBuffer.append(None)		
 
 	recievedBuffer.append(data)
-	bitMap.append(True)
-
 	return recievedBuffer, bitMap
 
 def updatePacketData(recievedBuffer, data, bitMap, receivedNumber):
-	bitMap[receivedNumber - 1] = 1
+	bitMap.remove(receivedNumber)
 	recievedBuffer[receivedNumber - 1] = data
 
 	return recievedBuffer, bitMap

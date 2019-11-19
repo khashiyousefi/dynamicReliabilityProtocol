@@ -26,7 +26,7 @@ def main():
 	length = len(groupedData)
 
 	# Wait for Client to connect
-	message, clientAddress = serverSocket.recvfrom(64000)
+	message, clientAddress = serverSocket.recvfrom(2048)
 	packet = parseDrpPacket(message.decode())
 	clientBufferSize = packet.getHeaderValue("bufferSize")
 
@@ -39,7 +39,8 @@ def main():
 		sequenceNumber += 1
 
 	if reliability == ReliabilityType.PEC:
-		attempts = 3
+		remainingAttempts = 3
+		attempts = 0
 
 		while True:
 			message, clientAddress = serverSocket.recvfrom(64000)
@@ -47,25 +48,31 @@ def main():
 			data = packet.getData()
 			bitMap = json.loads(data)
 			sentBitMapResponse = False
+			index = 0
+			bitMapLength = len(bitMap)
 			
-			for index in range(0, length):
-				if bitMap[index] == False:
-					packetToSend = createDataPacket(reliability, index + 1, groupedData[index], fileExtension, False)
-					serverSocket.sendto(packetToSend.encode(), clientAddress)
-					sentBitMapResponse = True
+			for sequenceNumber in bitMap:
+				last = bitMapLength == index + 1
+
+				packetToSend = createDataPacket(reliability, sequenceNumber, groupedData[sequenceNumber - 1], fileExtension, last)
+				serverSocket.sendto(packetToSend.encode(), clientAddress)
+				sentBitMapResponse = True
+				index += 1
 
 			if sentBitMapResponse == False:
 				packetToSend = createFinPacket()
 				serverSocket.sendto(packetToSend.encode(), clientAddress)
 				break
-			elif attempts <= 0:
+			elif remainingAttempts <= 0:
 				print 'Error: too many attempts to retransmit missing packets'
 				packetToSend = createFinPacket()
 				serverSocket.sendto(packetToSend.encode(), clientAddress)
 				break
 			else:
-				attempts -= 1
+				remainingAttempts -= 1
+				attempts += 1
 
+	print 'PEC: attempts: ' + str(attempts)
 	serverSocket.close()
 
 def setupServer(port):
