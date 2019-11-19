@@ -19,15 +19,35 @@ python serverDRP.py -l <path of lower quality file to send {used only when relia
 python serverDRP.py -r <reliability type {RETRANSMISSION=1, PEC=2, FEC=3}>
 ```
 
+Retransmission Example:
+```
+python serverDRP.py -f ./test.wav -r 1
+```
+
+PEC Example:
+```
+python serverDRP.py -f ./test.wav -r 2
+```
+
+FEC Example:
+```
+python serverDRP.py -f ./test.wav -l ./test_low_quality.wav -r 3
+```
+
 ### Start the client:
 ```
 python clientDRP.py
 ```
 We have included a few optional arguments you can pass in order to control the client's behaviour:
 ```
-python serverDRP.py -i <server ip address>
-python serverDRP.py -p <server port>
-python serverDRP.py -o <name of file to save>
+python clientDRP.py -i <server ip address>
+python clientDRP.py -p <server port>
+python clientDRP.py -o <name of file to save>
+```
+
+Example:
+```
+python clientDRP.py -o output.wav
 ```
 
 ## Reliabilities
