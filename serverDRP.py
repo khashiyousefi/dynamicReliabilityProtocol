@@ -11,13 +11,15 @@ parser.add_argument('-i', '--ip', type=str, metavar='', help='server ip address'
 parser.add_argument('-p', '--port', type=int, metavar='', help='server port number')
 parser.add_argument('-f', '--file', type=str, metavar='', help='file to send')
 parser.add_argument('-l', '--lfile', type=str, metavar='', help='low quality file to send <required when using FEC>')
-parser.add_argument('-r', '--reliability', type=int, metavar='', help='reliability type <RETRANSMISSION=1, PEC=2, FEC=3>')
+parser.add_argument('-r', '--reliability', type=int, metavar='', help='reliability type <UDP=0, RETRANSMISSION=1, PEC=2, FEC=3>')
 parser.add_argument('-b', '--bytes', type=int, metavar='', help='bytes per DRP packet')
 args = parser.parse_args()
+
 
 def main():
 	# Variables
 	sequenceNumber = 1
+	ackCount = 0
 
 	# Initialize the Server
 	ip, port, filePath, lfilePath, reliability, bytesPerPacket = readCommandArguments()
@@ -45,19 +47,28 @@ def main():
 	for packetBytes in groupedData:
 		last = length == sequenceNumber
 
-		# Randomly not send packets to simulate bad network
-		if random.random() > 0.8:
-			sequenceNumber += 1
-			continue
-
 		if reliability == ReliabilityType.FEC:
 			lowerBytes = lgroupedData[sequenceNumber - 2] if sequenceNumber > 1 else ''
 			packetToSend = createFecDataPacket(reliability, sequenceNumber, packetBytes, lowerBytes, fileExtension, last)
 		else:
 			packetToSend = createDataPacket(reliability, sequenceNumber, packetBytes, fileExtension, last)
 
+		#if random.random() > 0.8:
 		serverSocket.sendto(packetToSend.encode(), clientAddress)
+
 		sequenceNumber += 1
+
+		if reliability == ReliabilityType.RETRANSMISSION:
+			while True:
+				try:
+					serverSocket.settimeout(1)
+					message, clientAddress = serverSocket.recvfrom(2048)
+					ackCount += 1
+					break
+				except timeout:
+					print 'ackCount: ' + str(ackCount)
+					sys.exit()
+					serverSocket.sendto(packetToSend.encode(), clientAddress)
 
 	if reliability == ReliabilityType.PEC:
 		remainingAttempts = 3
@@ -94,7 +105,8 @@ def main():
 				attempts += 1
 
 		print 'PEC: attempts: ' + str(attempts)
-		
+	
+	print 'ackCount: ' + str(ackCount)
 	serverSocket.close()
 
 def setupServer(ip, port):
@@ -106,8 +118,8 @@ def readCommandArguments():
 	ip = args.ip if args.ip != None else ''
 	port = args.port if args.port != None else 12000
 
-	if args.reliability != None and (args.reliability < 1 or args.reliability > 3):
-		print "Error: reliability must be: <CONNECTION=1, DATA=2, ACK=3>"
+	if args.reliability != None and (args.reliability < 0 or args.reliability > 3):
+		print "Error: reliability must be: <UDP=0, RETRANSMISSION=1, PEC=2, FEC=3>"
 		sys.exit()
 
 	reliability = args.reliability if args.reliability != None else 1

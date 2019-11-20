@@ -38,12 +38,16 @@ def main():
 		if not missingPackets and receivedNumber - lastReceived > 1:
 			missingPackets = True
 
-		if bitMapSent == True:
+		if bitMapSent == True or receivedNumber <= lastReceived:
 			recievedBuffer, bitMap = updatePacketData(recievedBuffer, data, bitMap, receivedNumber)
 		else:
 			recievedBuffer, bitMap = storePacketData(reliability, recievedBuffer, data, ldata, bitMap, lastReceived, receivedNumber)
 
 		lastReceived = receivedNumber
+
+		if reliability == ReliabilityType.RETRANSMISSION:
+			ack = ''
+			clientSocket.sendto(ack.encode(), (ip, port))
 
 		if packet.getHeaderValue('last') == True:
 			if reliability == ReliabilityType.PEC:
@@ -57,6 +61,7 @@ def main():
 				break;
 
 	clientSocket.close()
+	print len(recievedBuffer)
 
 	if outputPath != None:
 

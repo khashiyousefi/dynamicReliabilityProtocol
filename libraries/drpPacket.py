@@ -5,7 +5,7 @@ def enum(**enums):
     return type('Enum', (), enums)
 
 PacketType = enum(CONNECTION=1, DATA=2, ACK=3)
-ReliabilityType = enum(RETRANSMISSION=1, PEC=2, FEC=3)
+ReliabilityType = enum(UDP=0, RETRANSMISSION=1, PEC=2, FEC=3)
 
 # Create Connection Packet
 # Creates a DRP packet for initializing connection from the receiver
