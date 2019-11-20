@@ -19,7 +19,6 @@ args = parser.parse_args()
 def main():
 	# Variables
 	sequenceNumber = 1
-	ackCount = 0
 
 	# Initialize the Server
 	ip, port, filePath, lfilePath, reliability, bytesPerPacket = readCommandArguments()
@@ -66,8 +65,6 @@ def main():
 					ackCount += 1
 					break
 				except timeout:
-					print 'ackCount: ' + str(ackCount)
-					sys.exit()
 					serverSocket.sendto(packetToSend.encode(), clientAddress)
 
 	if reliability == ReliabilityType.PEC:
@@ -106,7 +103,6 @@ def main():
 
 		print 'PEC: attempts: ' + str(attempts)
 	
-	print 'ackCount: ' + str(ackCount)
 	serverSocket.close()
 
 def setupServer(ip, port):

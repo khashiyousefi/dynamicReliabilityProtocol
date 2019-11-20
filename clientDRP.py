@@ -61,7 +61,6 @@ def main():
 				break;
 
 	clientSocket.close()
-	print len(recievedBuffer)
 
 	if outputPath != None:
 
