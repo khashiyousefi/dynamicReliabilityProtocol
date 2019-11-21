@@ -17,6 +17,9 @@ python serverDRP.py -p <server port>
 python serverDRP.py -f <path of file to send>
 python serverDRP.py -l <path of lower quality file to send {used only when reliability type is set to FEC>
 python serverDRP.py -r <reliability type {RETRANSMISSION=1, PEC=2, FEC=3}>
+python serverDRP.py -t <timeout - milliseconds before timing out waiting for an ACK>
+python serverDRP.py -a <retransmission attempts - number of attempts for retransmissions>
+python serverDRP.py -d <droprate {0 - 100} where 0=drop no packets, 100=drop all packets>
 ```
 
 Retransmission Example:
@@ -31,7 +34,7 @@ python serverDRP.py -f ./test.wav -r 2
 
 FEC Example:
 ```
-python serverDRP.py -f ./test.wav -l ./test_low_quality.wav -r 3
+python serverDRP.py -f ./test.txt -l ./test_low_quality.txt -r 3
 ```
 
 ### Start the client:
@@ -57,7 +60,9 @@ This reliability allows the connection to behave similarly to TCP, in which the 
 Similar to the previous reliability, we will retransmit missing packets; however, this reliability scheme does not use acknowledgements to tell the server the client has received a packet. Instead, we allow the server to transmit the entire file/data, and then the client will respond with a bitmap of all the missing data packets. The server will then start over, but only sending the packets missing, indicated by the bitmap. By default, this behaviour will allow for 3 retranissmission attempts; however, you can change this setting when starting the server.
 ### FEC: Forward-Error Correction <r = 3>
 Instead of performing the error correction after the entire transmission of the data, this reliability scheme allows the client to handle the reliability. RTP contains a similar method of FEC in which it will send packets containing both high quality and lower quality data. The lower quality data will come from the previous packet's higher quality data. If the client is missing a packet, they will retreive the lower quality data from the adjacent packet to ensure no lag occurs and does not require them to request a retransmission.
-> Note: This reliability requires the server to include 2 versions of the same file
+
+> Note: This reliability requires the server to include 2 versions of the same file 
+
 ```
-python serverDRP.py -f <high quality file> -l <low quality file>
+python serverDRP.py -f <high quality file> -l <low quality file> -r 3
 ```
