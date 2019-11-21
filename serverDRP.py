@@ -13,6 +13,9 @@ parser.add_argument('-f', '--file', type=str, metavar='', help='file to send')
 parser.add_argument('-l', '--lfile', type=str, metavar='', help='low quality file to send <required when using FEC>')
 parser.add_argument('-r', '--reliability', type=int, metavar='', help='reliability type <UDP=0, RETRANSMISSION=1, PEC=2, FEC=3>')
 parser.add_argument('-b', '--bytes', type=int, metavar='', help='bytes per DRP packet')
+parser.add_argument('-t', '--timeout', type=int, metavar='', help='milliseconds before a timeout')
+parser.add_argument('-a', '--attempts', type=int, metavar='', help='number of attempts for retransmission or bitmap transmissions')
+parser.add_argument('-d', '--droprate', type=int, metavar='', help='rate in which UDP will drop packets <0 - 100> where 0=no drops and 100=every packet drops')
 args = parser.parse_args()
 
 
@@ -21,7 +24,7 @@ def main():
 	sequenceNumber = 1
 
 	# Initialize the Server
-	ip, port, filePath, lfilePath, reliability, bytesPerPacket = readCommandArguments()
+	ip, port, filePath, lfilePath, reliability, bytesPerPacket, timeout, attempts, droprate = readCommandArguments()
 
 	if reliability == ReliabilityType.FEC and (filePath == None or lfilePath == None):
 		print 'Error: must include both a normal file using -f and low quality file using -l'
@@ -52,24 +55,32 @@ def main():
 		else:
 			packetToSend = createDataPacket(reliability, sequenceNumber, packetBytes, fileExtension, last)
 
-		#if random.random() > 0.8:
-		serverSocket.sendto(packetToSend.encode(), clientAddress)
+		if random.random() > droprate:
+			serverSocket.sendto(packetToSend.encode(), clientAddress)
 
 		sequenceNumber += 1
 
-		if reliability == ReliabilityType.RETRANSMISSION:
+		if reliability == ReliabilityType.RETRANSMISSION or last:
+			currentAttempt = 0
+
 			while True:
 				try:
-					serverSocket.settimeout(1)
+					serverSocket.settimeout(timeout)
 					message, clientAddress = serverSocket.recvfrom(2048)
-					ackCount += 1
 					break
-				except timeout:
-					serverSocket.sendto(packetToSend.encode(), clientAddress)
+				except:
+					currentAttempt += 1
+
+					if currentAttempt > attempts:
+						print 'Error: retransmission of the same packet occured more than ' + str(attempts) + ' times'
+						sys.exit()
+
+					if random.random() > droprate:
+						serverSocket.sendto(packetToSend.encode(), clientAddress)
 
 	if reliability == ReliabilityType.PEC:
-		remainingAttempts = 3
-		attempts = 0
+		remainingAttempts = attempts
+		currentAttempt = 0
 
 		while True:
 			message, clientAddress = serverSocket.recvfrom(64000)
@@ -88,6 +99,24 @@ def main():
 				sentBitMapResponse = True
 				index += 1
 
+				if last:
+					currentAttempt = 0
+
+					while True:
+						try:
+							serverSocket.settimeout(timeout)
+							message, clientAddress = serverSocket.recvfrom(2048)
+							break
+						except:
+							currentAttempt += 1
+
+							if currentAttempt > attempts:
+								print 'Error: retransmission of the same packet occured more than ' + str(attempts) + ' times'
+								sys.exit()
+
+							if random.random() > droprate:
+								serverSocket.sendto(packetToSend.encode(), clientAddress)
+
 			if sentBitMapResponse == False:
 				packetToSend = createFinPacket()
 				serverSocket.sendto(packetToSend.encode(), clientAddress)
@@ -99,9 +128,9 @@ def main():
 				break
 			else:
 				remainingAttempts -= 1
-				attempts += 1
+				currentAttempt += 1
 
-		print 'PEC: attempts: ' + str(attempts)
+		print 'PEC: attempts: ' + str(currentAttempt)
 	
 	serverSocket.close()
 
@@ -120,7 +149,28 @@ def readCommandArguments():
 
 	reliability = args.reliability if args.reliability != None else 1
 	bytesPerPacket = args.bytes if args.bytes != None else 2
-	return ip, port, args.file, args.lfile, reliability, bytesPerPacket
+	timeout = (args.timeout / 1000.0) if args.timeout != None else 0.01
+	attempts = args.attempts if args.attempts != None else 3
+	droprate = args.droprate if args.droprate != None else 0
+
+	if bytesPerPacket <= 0:
+		print "Error: bytes per packet must be > 0"
+		sys.exit()
+
+	if timeout <= 0:
+		print timeout
+		print "Error: timeout must be > 0"
+		sys.exit()
+
+	if attempts <= 0:
+		print "Error: attempts must be > 0"
+		sys.exit()
+
+	if droprate < 0 or droprate > 100:
+		print "Error: droprate must be between 0 and 100"
+		sys.exit()
+
+	return ip, port, args.file, args.lfile, reliability, bytesPerPacket, timeout, attempts, droprate
 
 def getSendingData(filePath, lfilePath):
 	if filePath != None:

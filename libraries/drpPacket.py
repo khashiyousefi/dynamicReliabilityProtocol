@@ -49,9 +49,8 @@ def createFecDataPacket(reliability, sequenceNumber, data, ldata, fileExtension,
 # Create Ack Packet
 # Creates a DRP packet for acknowledging that a data packet was received
 # sequenceNumber : the sequence number of the packet received 
-def createAckPacket(sequenceNumber):
+def createAckPacket():
 	packet = DrpPacket(PacketType.ACK, {})
-	packet.addHeaderInformation("sequenceNumber", sequenceNumber)
 	return packet
 
 # Create BitMap Packet

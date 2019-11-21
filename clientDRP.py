@@ -45,8 +45,8 @@ def main():
 
 		lastReceived = receivedNumber
 
-		if reliability == ReliabilityType.RETRANSMISSION:
-			ack = ''
+		if reliability == ReliabilityType.RETRANSMISSION or packet.getHeaderValue('last') == True:
+			ack = createAckPacket()
 			clientSocket.sendto(ack.encode(), (ip, port))
 
 		if packet.getHeaderValue('last') == True:
@@ -63,20 +63,28 @@ def main():
 	clientSocket.close()
 
 	if outputPath != None:
+		lastData = None
 
 		if fileExtension == 'txt':
 			file = open(outputPath, 'w')
 
 			for data in recievedBuffer:
+				if data == None and reliability > 0:
+					data = lastData
+				elif data == None:
+					data = ''
+
 				file.write(binascii.unhexlify(data))
+				lastData = data
 		else:
 			print 'binary write'
 			file = open(outputPath, 'wb')
-			lastData = None
 			
 			for data in recievedBuffer:
-				if data == None:
+				if data == None and reliability > 0:
 					data = lastData
+				elif data == None:
+					data = ''
 
 				file.write(binascii.unhexlify(data))
 				lastData = data
