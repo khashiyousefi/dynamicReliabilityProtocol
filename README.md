@@ -2,7 +2,8 @@
 
 ## Description
 This project includes 3 levels of reliability added onto UDP. The intention of this is to ensure that different file formats or differing requirements are met for specific file formats or time restrictions. We intended on providing these 3 reliabilitys to mimic similar reliabilities in protocols such as TCP or RTP, in which we implemented different ways a file could be maintained over an unpredictable protocol such as UDP.
-> Note: this program has been tested to work with both ascii and binary file formats as we intended for this to be a robust program; however, the main file formats we used in our testing which are known to work are .txt and .wav
+> Note: this program has been tested to work with both ascii and binary file formats as we intended for this to be a robust program; however, the main file formats we used in our testing which are known to work are .txt, .mp3, and .wav
+> It is recommended to not use too large of files, not only for time purposes, but also due to the bitmap being sent as one packet
 
 ## Running the Program
 To run the program you must first start the server to allow it to wait for a request. Then you can start up the client who will make the request and then wait for data to be sent to them.
