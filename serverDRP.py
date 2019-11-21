@@ -170,6 +170,7 @@ def readCommandArguments():
 		print "Error: droprate must be between 0 and 100"
 		sys.exit()
 
+	droprate = droprate / 100.0
 	return ip, port, args.file, args.lfile, reliability, bytesPerPacket, timeout, attempts, droprate
 
 def getSendingData(filePath, lfilePath):
