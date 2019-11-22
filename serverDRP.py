@@ -16,15 +16,16 @@ parser.add_argument('-b', '--bytes', type=int, metavar='', help='bytes per DRP p
 parser.add_argument('-t', '--timeout', type=int, metavar='', help='milliseconds before a timeout')
 parser.add_argument('-a', '--attempts', type=int, metavar='', help='number of attempts for retransmission or bitmap transmissions')
 parser.add_argument('-d', '--droprate', type=int, metavar='', help='rate in which UDP will drop packets <0 - 100> where 0=no drops and 100=every packet drops')
+parser.add_argument('-c', '--dropcount', type=int, metavar='', help='number of packets in a row to drop')
 args = parser.parse_args()
-
 
 def main():
 	# Variables
 	sequenceNumber = 1
+	remainingDrops = 0
 
 	# Initialize the Server
-	ip, port, filePath, lfilePath, reliability, bytesPerPacket, timeout, attempts, droprate = readCommandArguments()
+	ip, port, filePath, lfilePath, reliability, bytesPerPacket, timeout, attempts, droprate, dropcount = readCommandArguments()
 
 	if reliability == ReliabilityType.FEC and (filePath == None or lfilePath == None):
 		print 'Error: must include both a normal file using -f and low quality file using -l'
@@ -45,7 +46,7 @@ def main():
 	packet = parseDrpPacket(message.decode())
 	clientBufferSize = packet.getHeaderValue("bufferSize")
 
-	# Send data packets
+	# Send data packets	
 	for packetBytes in groupedData:
 		last = length == sequenceNumber
 
@@ -55,9 +56,7 @@ def main():
 		else:
 			packetToSend = createDataPacket(reliability, sequenceNumber, packetBytes, fileExtension, last)
 
-		if random.random() > droprate:
-			serverSocket.sendto(packetToSend.encode(), clientAddress)
-
+		remainingDrops = attemptPacketSend(serverSocket, packetToSend, clientAddress, droprate, remainingDrops, dropcount)
 		sequenceNumber += 1
 
 		if reliability == ReliabilityType.RETRANSMISSION or last:
@@ -75,18 +74,22 @@ def main():
 						print 'Error: retransmission of the same packet occured more than ' + str(attempts) + ' times'
 						sys.exit()
 
-					if random.random() > droprate:
-						serverSocket.sendto(packetToSend.encode(), clientAddress)
+					remainingDrops = attemptPacketSend(serverSocket, packetToSend, clientAddress, droprate, remainingDrops, dropcount)
 
 	if reliability == ReliabilityType.PEC:
 		remainingAttempts = attempts
 		currentAttempt = 0
 
 		while True:
-			message, clientAddress = serverSocket.recvfrom(64000)
-			packet = parseDrpPacket(message.decode())
-			data = packet.getData()
-			bitMap = json.loads(data)
+			try:
+				message, clientAddress = serverSocket.recvfrom(128000)
+				packet = parseDrpPacket(message.decode())
+				data = packet.getData()
+				bitMap = json.loads(data)
+			except:
+				print 'Error: too many files dropped, exceeding maximum size of bitmap 128000 bits'
+				sys.exit()
+
 			sentBitMapResponse = False
 			index = 0
 			bitMapLength = len(bitMap)
@@ -114,8 +117,7 @@ def main():
 								print 'Error: retransmission of the same packet occured more than ' + str(attempts) + ' times'
 								sys.exit()
 
-							if random.random() > droprate:
-								serverSocket.sendto(packetToSend.encode(), clientAddress)
+							remainingDrops = attemptPacketSend(serverSocket, packetToSend, clientAddress, droprate, remainingDrops, dropcount)
 
 			if sentBitMapResponse == False:
 				packetToSend = createFinPacket()
@@ -148,10 +150,11 @@ def readCommandArguments():
 		sys.exit()
 
 	reliability = args.reliability if args.reliability != None else 1
-	bytesPerPacket = args.bytes if args.bytes != None else 2
+	bytesPerPacket = args.bytes if args.bytes != None else 4
 	timeout = (args.timeout / 1000.0) if args.timeout != None else 0.01
-	attempts = args.attempts if args.attempts != None else 3
+	attempts = args.attempts if args.attempts != None else 10
 	droprate = args.droprate if args.droprate != None else 0
+	dropcount = args.dropcount if args.dropcount != None else 1
 
 	if bytesPerPacket <= 0:
 		print "Error: bytes per packet must be > 0"
@@ -170,8 +173,12 @@ def readCommandArguments():
 		print "Error: droprate must be between 0 and 100"
 		sys.exit()
 
+	if dropcount < 0:
+		print "Error: dropcount must be greater than 0"
+		sys.exit()
+
 	droprate = droprate / 100.0
-	return ip, port, args.file, args.lfile, reliability, bytesPerPacket, timeout, attempts, droprate
+	return ip, port, args.file, args.lfile, reliability, bytesPerPacket, timeout, attempts, droprate, dropcount
 
 def getSendingData(filePath, lfilePath):
 	if filePath != None:
@@ -179,7 +186,7 @@ def getSendingData(filePath, lfilePath):
 			ldata = None
 			(fileType, encoding) = mimetypes.guess_type(filePath)
 
-			if fileType == 'text/plain':
+			if fileType == 'text/plain' or fileType == None:
 				file = open(filePath, 'r')
 
 				if lfilePath != None:
@@ -228,6 +235,15 @@ def getFileExtension(filePath):
 		return filePathTokens[len(filePathTokens) - 1]
 
 	return 'txt'
+
+def attemptPacketSend(serverSocket, packet, clientAddress, droprate, remainingDrops, dropcount):
+	if random.random() < droprate and remainingDrops <= 0:
+		return dropcount
+	elif remainingDrops > 0:
+		return remainingDrops - 1
+	else:
+		serverSocket.sendto(packet.encode(), clientAddress)
+		return 0
 
 if __name__ == "__main__":
 	main()

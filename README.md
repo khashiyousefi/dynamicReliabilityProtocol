@@ -1,5 +1,8 @@
 # Dynamic Reliability Protocol
 
+## TLDR
+If you want to do quick tests of each protocol we have included a tests folder where you can run each batch files to see the results.
+
 ## Description
 This project includes 3 levels of reliability added onto UDP. The intention of this is to ensure that different file formats or differing requirements are met for specific file formats or time restrictions. We intended on providing these 3 reliabilitys to mimic similar reliabilities in protocols such as TCP or RTP, in which we implemented different ways a file could be maintained over an unpredictable protocol such as UDP.
 > Note: this program has been tested to work with both ascii and binary file formats as we intended for this to be a robust program; however, the main file formats we used in our testing which are known to work are .txt and .wav
