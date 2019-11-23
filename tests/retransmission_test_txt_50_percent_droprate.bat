@@ -5,7 +5,7 @@ GOTO :StartClient
 
 :AsyncStartServer
 	ECHO "starting server"
-	start /b python ../serverDRP.py -r 1 -f ./test-files/test.txt -d 50
+	start /b python ../serverDRP.py -r 1 -f ./test-files/test.txt -d 50 -l 1
 GOTO :END
 
 :StartClient
