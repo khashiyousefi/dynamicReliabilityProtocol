@@ -2,6 +2,9 @@
 
 ## TLDR
 If you want to do quick tests of each protocol we have included a tests folder where you can run each batch files to see the results.
+1. Open tests folder
+2. Run a batch file test
+3. Examine the log.txt and the output.txt or output.wav
 
 ## Description
 This project includes 3 levels of reliability added onto UDP. The intention of this is to ensure that different file formats or differing requirements are met for specific file formats or time restrictions. We intended on providing these 3 reliabilitys to mimic similar reliabilities in protocols such as TCP or RTP, in which we implemented different ways a file could be maintained over an unpredictable protocol such as UDP.
