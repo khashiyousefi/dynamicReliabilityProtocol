@@ -5,7 +5,7 @@ If you want to do quick tests of each protocol we have included a tests folder w
 
 ## Description
 This project includes 3 levels of reliability added onto UDP. The intention of this is to ensure that different file formats or differing requirements are met for specific file formats or time restrictions. We intended on providing these 3 reliabilitys to mimic similar reliabilities in protocols such as TCP or RTP, in which we implemented different ways a file could be maintained over an unpredictable protocol such as UDP.
-> Note: this program has been tested to work with both ascii and binary file formats as we intended for this to be a robust program; however, the main file formats we used in our testing which are known to work are .txt and .wav
+> Note: this program has been tested to work with both ascii and binary file formats as we intended for this to be a robust program; however, the main file formats we used in our testing which are known to work are .txt and .wav. It is also recommended that if you are using audio or video files that you keep them small for retransmission as it can take a long time, with pec you could reach a max bitmap size, and fec can only perform txt files.
 
 ## Running the Program
 To run the program you must first start the server to allow it to wait for a request. Then you can start up the client who will make the request and then wait for data to be sent to them.
@@ -18,11 +18,14 @@ We have included a few optional arguments you can pass in order to control the s
 python serverDRP.py -i <server ip address>
 python serverDRP.py -p <server port>
 python serverDRP.py -f <path of file to send>
-python serverDRP.py -l <path of lower quality file to send {used only when reliability type is set to FEC>
+python serverDRP.py -q <path of lower quality file to send {used only when reliability type is set to FEC>
 python serverDRP.py -r <reliability type {RETRANSMISSION=1, PEC=2, FEC=3}>
+python serverDRP.py -b <bytes per DRP packet>
 python serverDRP.py -t <timeout - milliseconds before timing out waiting for an ACK>
 python serverDRP.py -a <retransmission attempts - number of attempts for retransmissions>
 python serverDRP.py -d <droprate {0 - 100} where 0=drop no packets, 100=drop all packets>
+python serverDRP.py -c <dropcount this will be the number of consecutive packets it will drop>
+python serverDRP.py -l <log information to a file 0=no logging, 1=logging>
 ```
 
 Retransmission Example:
