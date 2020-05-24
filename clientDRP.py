@@ -77,7 +77,6 @@ def main():
 				file.write(binascii.unhexlify(data))
 				lastData = data
 		else:
-			print 'binary write'
 			file = open(outputPath, 'wb')
 			
 			for data in recievedBuffer:
@@ -109,7 +108,12 @@ def setupConnection(serverName, serverPort, bufferSize):
 def sendBitMap(socket, serverName, serverPort, bitMap):
 	packet = createBitMapPacket(bitMap)
 	message = packet.toString()
-	socket.sendto(message.encode(), (serverName, serverPort))
+
+	try:
+		socket.sendto(message.encode(), (serverName, serverPort))
+	except:
+		print 'Error: too many files dropped, exceeding maximum size of bitmap 128000 bits'
+		sys.exit()
 
 def storePacketData(reliability, recievedBuffer, data, ldata, bitMap, lastReceived, receivedNumber):
 	while receivedNumber - lastReceived > 1:
